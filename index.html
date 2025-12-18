@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Daily Supplement Checklist</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 16px; }
+    h1 { margin: 0 0 8px; font-size: 20px; }
+    .sub { color: #555; margin-bottom: 16px; }
+    .card { border: 1px solid #e5e5e5; border-radius: 12px; padding: 12px; margin: 10px 0; }
+    .time { font-weight: 700; margin-bottom: 8px; }
+    label { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; }
+    input[type="checkbox"] { transform: scale(1.2); margin-top: 2px; }
+    .note { color: #666; font-size: 12px; margin-left: 28px; margin-top: -4px; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; margin: 14px 0; }
+    button { padding: 10px 12px; border-radius: 10px; border: 1px solid #ddd; background: #fafafa; cursor: pointer; }
+    button:active { transform: translateY(1px); }
+  </style>
+</head>
+<body>
+  <h1>Daily Supplement Checklist</h1>
+  <div class="sub">Workout 11:30 • Bed 22:00 • Checks save automatically</div>
+
+  <div class="row">
+    <button id="resetToday">Reset today</button>
+    <button id="resetAll">Reset all (clears saved data)</button>
+  </div>
+
+  <div id="app"></div>
+
+<script>
+  // --- Configure your timeline items here ---
+  const sections = [
+    {
+      title: "Morning (7:00–8:00) — Wake & Breakfast",
+      items: [
+        { id: "d3", label: "Vitamin D3 (if deficient) — with a fat-containing breakfast" },
+        { id: "omega3_am", label: "Omega-3 (EPA/DHA)" },
+        { id: "creatine", label: "Creatine monohydrate (3–5 g)" },
+        { id: "zinc", label: "Zinc (optional, if intake is low)" },
+      ]
+    },
+    {
+      title: "Pre-Workout (9:30–11:00)",
+      items: [
+        { id: "beetroot", label: "9:30–10:00 — Beetroot / nitrate" },
+        { id: "collagen_c", label: "10:30–11:00 — Collagen (10–15 g) + Vitamin C (50–200 mg)" },
+        { id: "caffeine", label: "Caffeine (optional, keep moderate so sleep isn’t impacted)", note: "Try to avoid caffeine after ~2–3 pm." },
+      ]
+    },
+    {
+      title: "Post-Workout / Lunch (12:30–13:30)",
+      items: [
+        { id: "protein", label: "Protein-rich meal" },
+        { id: "omega3_pm", label: "Omega-3 (if splitting dose)" },
+        { id: "curcumin", label: "Curcumin — with food containing fat" },
+      ]
+    },
+    {
+      title: "Afternoon (15:00–17:00)",
+      items: [
+        { id: "no_caff", label: "No caffeine after ~2–3 pm" },
+        { id: "hydrate", label: "Hydration + light movement (optional)" },
+      ]
+    },
+    {
+      title: "Evening (19:30–20:30)",
+      items: [
+        { id: "ashwagandha", label: "Ashwagandha (optional, if stress/sleep is a limiter)" },
+      ]
+    },
+    {
+      title: "Pre-Bed (21:00–21:30)",
+      items: [
+        { id: "magnesium", label: "Magnesium (100–300 mg elemental) — 30–60 min before bed" },
+      ]
+    }
+  ];
+
+  // --- Storage helpers (separate checklist per day) ---
+  const todayKey = () => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,"0");
+    const day = String(d.getDate()).padStart(2,"0");
+    return `suppChecklist:${y}-${m}-${day}`;
+  };
+
+  const loadState = () => JSON.parse(localStorage.getItem(todayKey()) || "{}");
+  const saveState = (state) => localStorage.setItem(todayKey(), JSON.stringify(state));
+
+  function render() {
+    const state = loadState();
+    const app = document.getElementById("app");
+    app.innerHTML = "";
+
+    sections.forEach(sec => {
+      const card = document.createElement("div");
+      card.className = "card";
+
+      const time = document.createElement("div");
+      time.className = "time";
+      time.textContent = sec.title;
+      card.appendChild(time);
+
+      sec.items.forEach(item => {
+        const wrap = document.createElement("div");
+
+        const lab = document.createElement("label");
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.checked = !!state[item.id];
+        cb.addEventListener("change", () => {
+          const next = loadState();
+          next[item.id] = cb.checked;
+          saveState(next);
+        });
+
+        const span = document.createElement("div");
+        span.textContent = item.label;
+
+        lab.appendChild(cb);
+        lab.appendChild(span);
+        wrap.appendChild(lab);
+
+        if (item.note) {
+          const note = document.createElement("div");
+          note.className = "note";
+          note.textContent = item.note;
+          wrap.appendChild(note);
+        }
+
+        card.appendChild(wrap);
+      });
+
+      app.appendChild(card);
+    });
+  }
+
+  document.getElementById("resetToday").addEventListener("click", () => {
+    localStorage.removeItem(todayKey());
+    render();
+  });
+
+  document.getElementById("resetAll").addEventListener("click", () => {
+    // Clears only keys that start with our prefix
+    const keys = [];
+    for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
+    keys.filter(k => k && k.startsWith("suppChecklist:")).forEach(k => localStorage.removeItem(k));
+    render();
+  });
+
+  render();
+</script>
+</body>
+</html>
